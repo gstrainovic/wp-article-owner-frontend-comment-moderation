@@ -10,7 +10,7 @@
  * Domain Path:     /languages
  * Version:         0.1.0
  *
- * @package         Wp_Article_Owner_Frontend_Comment_Moderation
+ * @package         WP_Article_Owner_Frontend_Comment_Moderation
  */
 
 
