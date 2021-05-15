@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Plugin Name:     WP Article Owner Frontend Comment Moderation
+ * Plugin Name:     WP Article Owner Frontend Comment / GeoDirectory Moderation
  * Plugin URI:      https://www.strainovic-it.ch
- * Description:     The article owner can on frontend approve oder trash unapproved comment.
+ * Description:     The article owner can on frontend approve oder trash unapproved comment or geodirectory rating.
  * Author:          Goran Strainovic
  * Author URI:      https://www.strainovic-it.ch
  * Text Domain:     wp-article-owner-frontend-comment-moderation
  * Domain Path:     /languages
- * Version:         0.1.0
+ * Version:         0.1.1
  *
  * @package         WP_Article_Owner_Frontend_Comment_Moderation
  */
@@ -23,43 +23,49 @@ function approveComment($id)
 
 function trashComment($id)
 {
-    $comment_status = wp_get_comment_status($id);
 
-    switch ($comment_status) {
-        case 'approved':
-            if (wp_trash_comment($id)) {
-                echo ('trashed');
-            }
-            break;
-        case 'unapproved':
-            if (wp_trash_comment($id)) {
-                echo ('trashed');
-            }
-            break;
-        case 'trash':
-            if (wp_untrash_comment($id)) {
-                echo ('untrashed');
-            }
-            break;
-        default:
-            echo ('error');
+    function url_origin( $s, $use_forwarded_host = false )
+    {
+        $ssl      = ( ! empty( $s['HTTPS'] ) && $s['HTTPS'] == 'on' );
+        $sp       = strtolower( $s['SERVER_PROTOCOL'] );
+        $protocol = substr( $sp, 0, strpos( $sp, '/' ) ) . ( ( $ssl ) ? 's' : '' );
+        $port     = $s['SERVER_PORT'];
+        $port     = ( ( ! $ssl && $port=='80' ) || ( $ssl && $port=='443' ) ) ? '' : ':'.$port;
+        $host     = ( $use_forwarded_host && isset( $s['HTTP_X_FORWARDED_HOST'] ) ) ? $s['HTTP_X_FORWARDED_HOST'] : ( isset( $s['HTTP_HOST'] ) ? $s['HTTP_HOST'] : null );
+        $host     = isset( $host ) ? $host : $s['SERVER_NAME'] . $port;
+        return $protocol . '://' . $host;
     }
+    
+    function full_url( $s, $use_forwarded_host = false )
+    {
+        return url_origin( $s, $use_forwarded_host ) . $s['REQUEST_URI'];
+    }
+    
+    $url = full_url( $_SERVER );
+
+    $newurl = parse_url($url, PHP_URL_SCHEME) . "://" . parse_url($url, PHP_URL_HOST) . parse_url($url, PHP_URL_PATH);
+
+    wp_trash_comment($id);
+    header("Location: ". $newurl);
+    exit();
 }
 
 
 function getApprovalLink($comment)
 {
     $id = $comment->comment_ID;
-    $class = 'waofcm-moderate' . "-report";
-    $link = '<a href=?approvecomment=' . $id . '>Freigeben</a>';
+    $class = '<a class="gd_user_action my-1 edit_link btn btn-sm text-white btn-primary"';
+    $icon = '<i class="fas fa-check"></i>';
+    $link = $class . 'href=?approvecomment=' . $id . '>' . $icon . ' Bewertung freigeben</a>';
     return $link;
 }
 
 function getTrashLink($comment)
 {
     $id = $comment->comment_ID;
-    $class = 'waofcm-moderate' . "-trash";
-    $link = '<a href=?delcomment=' . $id . '>Löschen</a>';
+    $class = '<a class="gd_user_action my-1 delete_link btn btn-sm text-white btn-danger"';
+    $icon = '<i class="fas fa-trash"></i>';
+    $link = $class . 'href=?delcomment=' . $id . '>' . $icon . ' Bewertung löschen</a>';
     return $link;
 }
 
@@ -74,7 +80,7 @@ if (isset($_GET['delcomment'])) {
 function printModerateLinks($comment)
 {
     if (is_single()) {
-        echo '<p class="waofcm-moderate-links">' . getApprovalLink($comment) . ' | ' . getTrashLink($comment) . '</p>';
+        echo '<p class="waofcm-moderate-links">' . getApprovalLink($comment) . ' ' . getTrashLink($comment) . '</p>';
     }
 }
 
@@ -92,7 +98,9 @@ function commentForApproval()
             echo '<h2>Bitte Kommentar freigeben oder löschen</h2>';
             echo '<p>Nach der Freigabe können Sie auf das Kommentar auch Antworten</p>';
             $post_rating = geodir_get_comment_rating($comment->comment_ID);
-            echo '<div class="geodir-review-ratings mb-n2">' . geodir_get_rating_stars($post_rating, $comment->comment_ID) . '</div>';
+            if ($post_rating > 0) {
+                echo '<div class="geodir-review-ratings mb-n2">' . geodir_get_rating_stars($post_rating, $comment->comment_ID) . '</div>';
+            }
             echo '<div class="comment-content comment card-body m-0">' . comment_text($comment->comment_ID) . '</div>';
             printModerateLinks($comment);
         }
