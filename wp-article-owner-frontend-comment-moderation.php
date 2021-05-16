@@ -8,7 +8,7 @@
  * Author URI:      https://www.strainovic-it.ch
  * Text Domain:     wp-article-owner-frontend-comment-moderation
  * Domain Path:     /languages
- * Version:         0.1.2
+ * Version:         0.1.3
  *
  * @package         WP_Article_Owner_Frontend_Comment_Moderation
  */
